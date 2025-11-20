@@ -1,25 +1,50 @@
-name: Continuous Integration
+name: CI Pipeline
+
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
-  
-permissions: write-all
+
 jobs:
-  build:
+  build-and-train:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: iterative/setup-cml@v2
-      - name: Install Packages
+      # Step 1 — Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2 — Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # Step 3 — Install CML
+      - name: Install CML
+        uses: iterative/setup-cml@v1
+
+      # Step 4 — Install project dependencies (Makefile: install)
+      - name: Install dependencies
         run: make install
-      - name: Format
-        run: make format
-      - name: Train
+
+      # Step 5 — Train model (Makefile: train)
+      - name: Train model
         run: make train
-      - name: Evaluation
+
+      # Step 6 — Evaluate model + generate CML report (Makefile: eval)
+      - name: Evaluate model and publish CML report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: make eval
+
+      # OPTIONAL — Upload model & results as artifacts
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-and-results
+          path: |
+            Model/
+            Results/
